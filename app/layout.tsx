@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Task Manager",
-  description: "Simple task manager with Next.js and MySQL",
+  title: "SSL Inc. - Showtime Sound & Lighting",
+  description: "Business management system for Showtime Sound & Lighting Inc.",
 };
 
 export default function RootLayout({

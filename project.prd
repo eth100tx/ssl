@@ -1,0 +1,241 @@
+# SSL Inc. - MVP Product Requirements Document
+
+## Executive Summary
+
+Showtime Sound & Lighting (SSL) Inc. needs a web-based business management system to replace their manual clipboard and Word document workflow. This MVP focuses on the core pain points: customer management, equipment tracking, and order/proposal generation.
+
+## Problem Statement
+
+SSL is experiencing:
+- **Data duplication** across Word documents and spreadsheets
+- **No equipment availability tracking** - risk of double-booking
+- **Time-consuming document creation** for proposals, orders, invoices
+- **Poor customer history access** affecting service quality
+- **Manual data searching** for business decisions
+
+Current scale: 50 active customers, $8,000 avg revenue/customer, 3 full-time employees
+
+## MVP Scope
+
+### Core Modules (Phase 1)
+
+#### 1. Customer Management
+- Create/edit/view customers
+- Fields: ID, name, company, contact, phone, address, city, state, zip, fax
+- View customer history (past orders/rentals)
+- Search customers by name/company
+
+#### 2. Equipment Inventory
+- Create/edit/view equipment items
+- Fields: ID, serial number, name, price (sale), rental rate, description, specifications
+- Equipment categories: Audio, Video, Lighting
+- Track equipment status: Available, Reserved, Out, Maintenance
+- Maintenance due date tracking
+
+#### 3. Orders/Proposals/Invoices
+- Single document workflow (mark as Proposal → Order → Invoice)
+- Link to customer
+- Event details: date, location (event address, shipping address)
+- Line items:
+  - Equipment sales (with price)
+  - Equipment rentals (with rental rate, dates)
+  - Operator support (rate, hours)
+- Auto-calculate totals
+- Payment method, terms, tax exempt tracking
+- Comments field
+
+#### 4. Equipment Reservations
+- Calendar view of equipment bookings
+- Reserve equipment for date ranges
+- Prevent double-booking
+- Track: reservation date, event date, time out, time due, time returned, condition
+
+### Data Model (MVP)
+
+```
+customers
+- id (PK)
+- name
+- company
+- contact_name
+- phone
+- address
+- city
+- state
+- zip
+- fax
+- created_at
+- updated_at
+
+equipment
+- id (PK)
+- serial_number (unique)
+- name
+- category (audio/video/lighting)
+- sale_price
+- rental_rate
+- description
+- specifications
+- status (available/reserved/out/maintenance)
+- maintenance_due_date
+- created_at
+- updated_at
+
+orders
+- id (PK)
+- customer_id (FK)
+- order_number (unique, auto-generated)
+- type (proposal/order/invoice)
+- status (draft/sent/accepted/completed/cancelled)
+- event_date
+- event_address
+- event_city
+- event_state
+- event_zip
+- shipping_address
+- shipping_city
+- shipping_state
+- shipping_zip
+- ship_date
+- ship_method
+- payment_method
+- payment_terms
+- tax_exempt_number
+- comments
+- sales_total
+- rental_total
+- operator_total
+- total_cost
+- created_at
+- updated_at
+
+order_items
+- id (PK)
+- order_id (FK)
+- equipment_id (FK, nullable)
+- item_type (sale/rental/operator)
+- description
+- quantity
+- unit_price
+- rental_start
+- rental_end
+- hours (for operator)
+- total
+- created_at
+
+reservations
+- id (PK)
+- equipment_id (FK)
+- order_id (FK, nullable)
+- reservation_date
+- event_date
+- time_out
+- time_due_in
+- time_returned
+- condition_notes
+- created_at
+- updated_at
+```
+
+### User Interface (MVP Pages)
+
+1. **Dashboard**
+   - Today's events
+   - Equipment out today
+   - Recent orders
+   - Quick actions
+
+2. **Customers** (`/customers`)
+   - List view with search
+   - Create/edit customer modal
+   - Customer detail page with order history
+
+3. **Equipment** (`/equipment`)
+   - List view with filters (category, status)
+   - Create/edit equipment modal
+   - Equipment detail page with rental history
+
+4. **Orders** (`/orders`)
+   - List view with filters (type, status)
+   - Create/edit order page
+   - Add line items (sales, rentals, operators)
+   - Print/export proposal/invoice
+
+5. **Calendar** (`/calendar`)
+   - Monthly view of reservations
+   - Equipment availability at-a-glance
+   - Click to view/create reservation
+
+### Tech Stack
+
+- **Frontend**: Next.js 14 (App Router), React, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: MySQL (Railway)
+- **Deployment**: Railway
+
+### Out of Scope (Future Phases)
+
+- Employee/technician management
+- Contract worker tracking & scheduling
+- Worker performance evaluations
+- Reporting & analytics dashboard
+- Consulting services tracking
+- Payment processing integration
+- Mobile app
+- Multi-user authentication & roles
+
+## Success Metrics
+
+1. Reduce time to create proposal/order from ~30 min to <5 min
+2. Eliminate equipment double-booking incidents
+3. Customer lookup in <10 seconds (vs manual file search)
+4. Single source of truth for all business data
+
+## Constraints
+
+- Budget: $15,000 (noted in case study)
+- Must support growth to 10-15 employees
+- Must be accessible to non-technical staff (Martha, technicians)
+
+## MVP Deliverables
+
+1. Customer CRUD with search
+2. Equipment CRUD with status tracking
+3. Order/Proposal/Invoice creation with line items
+4. Equipment reservation calendar with conflict prevention
+5. Basic dashboard with today's view
+
+## API Endpoints (MVP)
+
+```
+# Customers
+GET    /api/customers
+GET    /api/customers/:id
+POST   /api/customers
+PUT    /api/customers/:id
+DELETE /api/customers/:id
+
+# Equipment
+GET    /api/equipment
+GET    /api/equipment/:id
+POST   /api/equipment
+PUT    /api/equipment/:id
+DELETE /api/equipment/:id
+
+# Orders
+GET    /api/orders
+GET    /api/orders/:id
+POST   /api/orders
+PUT    /api/orders/:id
+DELETE /api/orders/:id
+POST   /api/orders/:id/items
+DELETE /api/orders/:id/items/:itemId
+
+# Reservations
+GET    /api/reservations
+GET    /api/reservations/calendar?start=&end=
+POST   /api/reservations
+PUT    /api/reservations/:id
+DELETE /api/reservations/:id
+GET    /api/equipment/:id/availability?start=&end=
+```
