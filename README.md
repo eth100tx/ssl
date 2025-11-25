@@ -1,72 +1,47 @@
-# Next.js + MySQL MVP on Railway
+# SSL Inc. - Showtime Sound & Lighting
 
-A simple task manager application built with Next.js 14 and MySQL, deployed on Railway.
+A business management system for Showtime Sound & Lighting Inc., built with Next.js 14 and MySQL.
 
-## Prerequisites Verification
+## Overview
 
-**IMPORTANT**: Before starting development, you MUST verify the environment is properly configured according to [README_SETUP_AI.md](./README_SETUP_AI.md).
+SSL Inc. is a complete business management solution for a sound and lighting rental/sales company. It handles customer management, equipment inventory, orders/proposals/invoices, and equipment reservations with a calendar view.
 
-### Required Setup Checklist
-- [ ] Railway CLI installed and authenticated
-- [ ] Railway MCP server configured
-- [ ] GitHub repository created and connected
-- [ ] Railway project created and linked to this directory
-- [ ] MySQL database service added to Railway project
-- [ ] DATABASE_URL environment variable configured
-- [ ] Git repository initialized with remote origin
+## Features
 
-**Run this verification before proceeding with app development:**
-```bash
-# 1. Check Railway authentication
-railway whoami
-
-# 2. Verify project link
-railway status
-
-# 3. Verify MySQL service exists
-railway service list
-
-# 4. Check environment variables
-railway variables
-
-# 5. Verify git remote
-git remote -v
-```
-
-All checks must pass before starting app development.
+- **Dashboard** - Overview of business metrics, recent orders, and equipment status
+- **Customer Management** - Full CRUD with search functionality
+- **Equipment Inventory** - Track audio, video, lighting, and other equipment
+- **Orders/Proposals/Invoices** - Complete order workflow with line items
+- **Equipment Calendar** - Visual reservation tracking and availability
 
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
-- **Database**: MySQL (via mysql2 package)
-- **Styling**: Tailwind CSS
-- **Deployment**: Railway
+- **Language**: TypeScript
+- **Database**: MySQL (Railway hosted)
+- **Styling**: Tailwind CSS with custom dark theme
+- **Deployment**: Railway (auto-deploy from GitHub)
 
-## Database Schema
+## Getting Started
 
-```sql
-CREATE TABLE tasks (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  completed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+### Prerequisites
 
-## Environment Variables
+- Node.js 18+
+- npm or yarn
+- Access to Railway database (or local MySQL)
 
-Create `.env.local` for local development:
-```
-DATABASE_URL=mysql://user:password@host:port/database
-```
-
-For Railway deployment, `DATABASE_URL` will be automatically provided by the MySQL service.
-
-## Local Development
+### Installation
 
 ```bash
+# Clone the repository
+git clone git@github.com:eth100tx/ssl.git
+cd ssl
+
 # Install dependencies
 npm install
+
+# Set up environment variables
+export DATABASE_URL="<your-database-url>"
 
 # Run development server
 npm run dev
@@ -74,45 +49,72 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## Deployment
-
-Deployment to Railway is automatic via git push:
+### Database Setup
 
 ```bash
-git add .
-git commit -m "Deploy to Railway"
-git push origin main
+# Run migrations
+node scripts/migrate.js
+
+# Seed mock data (optional)
+node scripts/seed-data.js
 ```
-
-Railway will automatically build and deploy the application.
-
-## Features
-
-- Create tasks
-- View all tasks
-- Toggle task completion status
-- Delete tasks
-- Responsive UI with Tailwind CSS
-
-## API Endpoints
-
-- `GET /api/tasks` - List all tasks
-- `POST /api/tasks` - Create new task (body: `{ title: string }`)
-- `PATCH /api/tasks/[id]` - Toggle task completed status
-- `DELETE /api/tasks/[id]` - Delete task
 
 ## Project Structure
 
 ```
-railway_demo/
+ssl/
 ├── app/
-│   ├── api/tasks/          # API routes
-│   ├── layout.tsx          # Root layout
-│   └── page.tsx            # Main page
+│   ├── api/                    # API routes
+│   │   ├── customers/          # Customer CRUD
+│   │   ├── equipment/          # Equipment CRUD
+│   │   ├── orders/             # Orders with line items
+│   │   └── reservations/       # Reservation CRUD
+│   ├── customers/              # Customer management page
+│   ├── equipment/              # Equipment inventory page
+│   ├── orders/                 # Orders list and detail pages
+│   ├── calendar/               # Reservation calendar
+│   ├── globals.css             # Theme and styling
+│   ├── layout.tsx              # Root layout
+│   └── page.tsx                # Dashboard
+├── components/
+│   ├── Layout.tsx              # Main layout with navigation
+│   └── Modal.tsx               # Reusable modal component
 ├── lib/
-│   └── db.ts               # MySQL connection
+│   ├── db.ts                   # Database connection
+│   └── types.ts                # TypeScript types
 ├── scripts/
-│   └── init.sql            # Database initialization
-├── .env.local              # Local environment variables
-└── package.json
+│   ├── ssl-schema.sql          # Database schema
+│   ├── migrate.js              # Migration runner
+│   └── seed-data.js            # Mock data seeder
+├── docs/
+│   ├── showtime_case.pdf       # Original case study
+│   └── SYSTEM.md               # System architecture guide
+└── status.md                   # Project status
 ```
+
+## Deployment
+
+The app auto-deploys to Railway when pushing to the `main` branch:
+
+```bash
+git add .
+git commit -m "Your changes"
+git push origin main
+```
+
+Production URL: https://ssl-production.up.railway.app
+
+## Design System
+
+The app uses a custom dark industrial theme inspired by stage lighting:
+
+- **Background**: Near-black (#0a0a0b)
+- **Accent**: Electric amber (#f5a623)
+- **Secondary**: Cool cyan (#00d4ff)
+- **Typography**: Bebas Neue (headlines), DM Sans (body)
+
+See `docs/SYSTEM.md` for detailed architecture documentation.
+
+## License
+
+Private project for SSL Inc.
