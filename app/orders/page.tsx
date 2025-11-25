@@ -6,18 +6,18 @@ import Layout from '@/components/Layout';
 import Modal from '@/components/Modal';
 import { Order, OrderType, OrderStatus, Customer } from '@/lib/types';
 
-const orderTypes: { value: OrderType; label: string }[] = [
-  { value: 'proposal', label: 'Proposal' },
-  { value: 'order', label: 'Order' },
-  { value: 'invoice', label: 'Invoice' },
+const orderTypes: { value: OrderType; label: string; icon: string }[] = [
+  { value: 'proposal', label: 'Proposal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+  { value: 'order', label: 'Order', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+  { value: 'invoice', label: 'Invoice', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
 ];
 
-const orderStatuses: { value: OrderStatus; label: string; color: string }[] = [
-  { value: 'draft', label: 'Draft', color: 'bg-gray-100 text-gray-800' },
-  { value: 'sent', label: 'Sent', color: 'bg-blue-100 text-blue-800' },
-  { value: 'accepted', label: 'Accepted', color: 'bg-green-100 text-green-800' },
-  { value: 'completed', label: 'Completed', color: 'bg-indigo-100 text-indigo-800' },
-  { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+const orderStatuses: { value: OrderStatus; label: string; badge: string }[] = [
+  { value: 'draft', label: 'Draft', badge: 'badge-neutral' },
+  { value: 'sent', label: 'Sent', badge: 'badge-info' },
+  { value: 'accepted', label: 'Accepted', badge: 'badge-success' },
+  { value: 'completed', label: 'Completed', badge: 'badge-accent' },
+  { value: 'cancelled', label: 'Cancelled', badge: 'badge-danger' },
 ];
 
 interface OrderWithCustomer extends Order {
@@ -95,7 +95,6 @@ export default function OrdersPage() {
       if (res.ok) {
         const order = await res.json();
         setIsModalOpen(false);
-        // Redirect to order detail page
         window.location.href = `/orders/${order.id}`;
       }
     } catch (error) {
@@ -118,12 +117,12 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusStyle = (status: OrderStatus) => {
-    return orderStatuses.find((s) => s.value === status)?.color || 'bg-gray-100 text-gray-800';
+  const getStatusBadge = (status: OrderStatus) => {
+    return orderStatuses.find((s) => s.value === status)?.badge || 'badge-neutral';
   };
 
-  const getTypeLabel = (type: OrderType) => {
-    return orderTypes.find((t) => t.value === type)?.label || type;
+  const getTypeInfo = (type: OrderType) => {
+    return orderTypes.find((t) => t.value === type) || orderTypes[0];
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -137,40 +136,95 @@ export default function OrdersPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+          <div>
+            <h1 className="text-3xl tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+              Orders
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+              Manage proposals, orders, and invoices
+            </p>
+          </div>
           <button
             onClick={() => {
               setFormData({ customer_id: '', type: 'proposal', event_date: '' });
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            className="btn btn-primary"
           >
-            + New Order
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Order
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-4">
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">All Types</option>
-            {orderTypes.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+        {/* Type Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          {orderTypes.map((type) => {
+            const count = orders.filter((o) => o.type === type.value).length;
+            const total = orders
+              .filter((o) => o.type === type.value)
+              .reduce((sum, o) => sum + (Number(o.total_cost) || 0), 0);
+            return (
+              <button
+                key={type.value}
+                onClick={() => setFilterType(filterType === type.value ? '' : type.value)}
+                className={`card p-4 text-left transition-all ${
+                  filterType === type.value ? 'card-glow' : ''
+                }`}
+                style={{
+                  borderColor: filterType === type.value ? 'var(--color-accent-dim)' : undefined,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      style={{
+                        background: filterType === type.value
+                          ? 'rgba(245, 166, 35, 0.2)'
+                          : 'var(--color-bg-tertiary)',
+                      }}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        style={{ color: filterType === type.value ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={type.icon} />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                        {count}
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                        {type.label}s
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium" style={{ color: 'var(--color-accent)' }}>
+                      {formatCurrency(total)}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
+        {/* Filters */}
+        <div className="flex gap-3">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="input select w-auto"
           >
             <option value="">All Status</option>
             {orderStatuses.map((s) => (
@@ -179,91 +233,148 @@ export default function OrdersPage() {
               </option>
             ))}
           </select>
+
+          {(filterType || filterStatus) && (
+            <button
+              onClick={() => {
+                setFilterType('');
+                setFilterStatus('');
+              }}
+              className="btn btn-ghost"
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="card overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading orders...</div>
+            <div className="p-8 space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="skeleton h-12 w-32" />
+                  <div className="skeleton h-12 w-48" />
+                  <div className="skeleton h-12 w-32" />
+                  <div className="skeleton h-12 w-24" />
+                  <div className="skeleton h-12 flex-1" />
+                </div>
+              ))}
+            </div>
           ) : orders.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No orders found. Create one to get started.
+            <div className="p-12 text-center">
+              <svg
+                className="w-16 h-16 mx-auto mb-4"
+                style={{ color: 'var(--color-text-muted)' }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p style={{ color: 'var(--color-text-muted)' }}>
+                No orders found. Create one to get started.
+              </p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Order #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type / Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Event Date
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th>Order #</th>
+                  <th>Customer</th>
+                  <th>Type / Status</th>
+                  <th>Event Date</th>
+                  <th className="text-right">Total</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/orders/${order.id}`}
-                        className="font-medium text-indigo-600 hover:text-indigo-800"
-                      >
-                        {order.order_number}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{order.customer_name}</div>
-                      {order.customer_company && (
-                        <div className="text-sm text-gray-500">{order.customer_company}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 capitalize mb-1">
-                        {getTypeLabel(order.type)}
-                      </div>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusStyle(
-                          order.status
-                        )}`}
-                      >
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {formatDate(order.event_date)}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                      {formatCurrency(order.total_cost)}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <Link
-                        href={`/orders/${order.id}`}
-                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(order.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              <tbody>
+                {orders.map((order, index) => {
+                  const typeInfo = getTypeInfo(order.type);
+                  return (
+                    <tr key={order.id} className={`animate-slide-up stagger-${Math.min(index + 1, 6)}`}>
+                      <td>
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="font-medium transition-colors"
+                          style={{ color: 'var(--color-accent)' }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accent-bright)'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-accent)'}
+                        >
+                          {order.order_number}
+                        </Link>
+                      </td>
+                      <td>
+                        <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                          {order.customer_name}
+                        </div>
+                        {order.customer_company && (
+                          <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                            {order.customer_company}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg
+                            className="w-4 h-4"
+                            style={{ color: 'var(--color-text-muted)' }}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={typeInfo.icon} />
+                          </svg>
+                          <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                            {typeInfo.label}
+                          </span>
+                        </div>
+                        <span className={`badge ${getStatusBadge(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                          {formatDate(order.event_date)}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <span
+                          className="font-medium"
+                          style={{ color: Number(order.total_cost) > 0 ? 'var(--color-success)' : 'var(--color-text-muted)' }}
+                        >
+                          {formatCurrency(Number(order.total_cost) || 0)}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={`/orders/${order.id}`}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ color: 'var(--color-accent)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(245, 166, 35, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(order.id)}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ color: 'var(--color-danger)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -279,14 +390,14 @@ export default function OrdersPage() {
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Customer <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Customer <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <select
               value={formData.customer_id}
               onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input select"
             >
               <option value="">Select customer...</option>
               {customers.map((c) => (
@@ -298,11 +409,13 @@ export default function OrdersPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Type
+            </label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as OrderType })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input select"
             >
               {orderTypes.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -313,27 +426,32 @@ export default function OrdersPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Event Date
+            </label>
             <input
               type="date"
               value={formData.event_date}
               onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div
+            className="flex justify-end gap-3 pt-4 mt-4"
+            style={{ borderTop: '1px solid var(--color-border)' }}
+          >
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !formData.customer_id}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="btn btn-primary"
             >
               {saving ? 'Creating...' : 'Create & Edit'}
             </button>

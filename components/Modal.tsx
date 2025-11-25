@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -11,6 +11,8 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -37,31 +39,76 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        {/* Backdrop */}
+        {/* Backdrop with blur */}
         <div
-          className="fixed inset-0 bg-black/50 transition-opacity"
+          className="fixed inset-0 transition-opacity animate-fade-in"
+          style={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(4px)',
+          }}
           onClick={onClose}
         />
 
         {/* Modal */}
-        <div className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} transform transition-all`}>
+        <div
+          ref={modalRef}
+          className={`relative w-full ${sizeClasses[size]} animate-scale-in`}
+          style={{
+            background: 'var(--color-bg-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '12px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(245, 166, 35, 0.1)',
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <div
+            className="flex items-center justify-between px-6 py-4"
+            style={{ borderBottom: '1px solid var(--color-border)' }}
+          >
+            <h3
+              className="text-xl tracking-wider"
+              style={{
+                fontFamily: "'Bebas Neue', Impact, sans-serif",
+                color: 'var(--color-text-primary)',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {title}
+            </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-1 rounded-lg transition-all duration-200"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-text-primary)';
+                e.currentTarget.style.background = 'var(--color-bg-tertiary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-text-muted)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Content */}
-          <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+          <div
+            className="px-6 py-4 max-h-[70vh] overflow-y-auto"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
             {children}
           </div>
+
+          {/* Subtle glow accent at top */}
+          <div
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px"
+            style={{
+              background: 'linear-gradient(90deg, transparent, var(--color-accent), transparent)',
+            }}
+          />
         </div>
       </div>
     </div>

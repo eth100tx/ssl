@@ -12,10 +12,17 @@ interface ReservationWithEquipment extends Reservation {
 }
 
 const statusColors: Record<ReservationStatus, string> = {
-  reserved: 'bg-yellow-500',
-  out: 'bg-blue-500',
-  returned: 'bg-green-500',
-  cancelled: 'bg-gray-400',
+  reserved: 'var(--color-warning)',
+  out: 'var(--color-info)',
+  returned: 'var(--color-success)',
+  cancelled: 'var(--color-text-muted)',
+};
+
+const statusBadges: Record<ReservationStatus, string> = {
+  reserved: 'badge-warning',
+  out: 'badge-info',
+  returned: 'badge-success',
+  cancelled: 'badge-neutral',
 };
 
 const statusLabels: { value: ReservationStatus; label: string }[] = [
@@ -90,12 +97,10 @@ export default function CalendarPage() {
 
     const days: (number | null)[] = [];
 
-    // Add empty slots for days before the first day of the month
     for (let i = 0; i < startingDay; i++) {
       days.push(null);
     }
 
-    // Add days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(i);
     }
@@ -171,7 +176,7 @@ export default function CalendarPage() {
       if (res.ok) {
         setIsModalOpen(false);
         fetchReservations();
-        fetchEquipment(); // Refresh equipment status
+        fetchEquipment();
       } else {
         const error = await res.json();
         alert(error.error || 'Failed to save');
@@ -211,25 +216,41 @@ export default function CalendarPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Equipment Calendar</h1>
-          <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+              Equipment Calendar
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+              Track equipment reservations and availability
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePrevMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--color-text-secondary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-tertiary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2 className="text-xl font-semibold text-gray-800 min-w-[200px] text-center">
+            <h2
+              className="text-xl min-w-[200px] text-center tracking-wider"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h2>
             <button
               onClick={handleNextMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--color-text-secondary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-tertiary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -239,21 +260,31 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-6 text-sm">
           {statusLabels.map((s) => (
-            <div key={s.value} className="flex items-center gap-1">
-              <div className={`w-3 h-3 rounded ${statusColors[s.value]}`}></div>
-              <span className="text-gray-600">{s.label}</span>
+            <div key={s.value} className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ background: statusColors[s.value] }}
+              />
+              <span style={{ color: 'var(--color-text-secondary)' }}>{s.label}</span>
             </div>
           ))}
         </div>
 
         {/* Calendar Grid */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="card overflow-hidden">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 bg-gray-50 border-b">
+          <div
+            className="grid grid-cols-7"
+            style={{ background: 'var(--color-bg-secondary)', borderBottom: '1px solid var(--color-border)' }}
+          >
             {dayNames.map((day) => (
-              <div key={day} className="p-3 text-center text-sm font-medium text-gray-700">
+              <div
+                key={day}
+                className="p-3 text-center text-sm font-medium"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
                 {day}
               </div>
             ))}
@@ -261,7 +292,14 @@ export default function CalendarPage() {
 
           {/* Calendar Days */}
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading calendar...</div>
+            <div className="p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>
+              <div className="skeleton h-8 w-32 mx-auto mb-4" />
+              <div className="grid grid-cols-7 gap-2">
+                {[...Array(35)].map((_, i) => (
+                  <div key={i} className="skeleton h-24" />
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-7">
               {days.map((day, index) => {
@@ -275,17 +313,32 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={index}
-                    className={`min-h-[120px] border-b border-r p-1 ${
-                      day ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-50'
+                    className={`min-h-[120px] p-1 transition-colors ${
+                      day ? 'cursor-pointer' : ''
                     }`}
+                    style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      borderRight: '1px solid var(--color-border)',
+                      background: day ? 'transparent' : 'var(--color-bg-secondary)',
+                    }}
                     onClick={() => day && handleDayClick(day)}
+                    onMouseEnter={(e) => {
+                      if (day) e.currentTarget.style.background = 'var(--color-bg-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (day) e.currentTarget.style.background = 'transparent';
+                    }}
                   >
                     {day && (
                       <>
                         <div
                           className={`text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full ${
-                            isToday ? 'bg-indigo-600 text-white' : 'text-gray-700'
+                            isToday ? '' : ''
                           }`}
+                          style={{
+                            background: isToday ? 'var(--color-accent)' : 'transparent',
+                            color: isToday ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)',
+                          }}
                         >
                           {day}
                         </div>
@@ -294,14 +347,21 @@ export default function CalendarPage() {
                             <div
                               key={res.id}
                               onClick={(e) => handleReservationClick(res, e)}
-                              className={`${statusColors[res.status]} text-white text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80`}
+                              className="text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-opacity hover:opacity-80"
+                              style={{
+                                background: statusColors[res.status],
+                                color: res.status === 'cancelled' ? 'var(--color-text-primary)' : 'var(--color-bg-primary)',
+                              }}
                               title={`${res.equipment_name} - ${res.customer_name || 'No customer'}`}
                             >
                               {res.equipment_name}
                             </div>
                           ))}
                           {dayReservations.length > 3 && (
-                            <div className="text-xs text-gray-500 px-1">
+                            <div
+                              className="text-xs px-1"
+                              style={{ color: 'var(--color-text-muted)' }}
+                            >
                               +{dayReservations.length - 3} more
                             </div>
                           )}
@@ -325,14 +385,14 @@ export default function CalendarPage() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Equipment <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Equipment <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <select
               value={formData.equipment_id}
               onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input select"
             >
               <option value="">Select equipment...</option>
               {equipment.map((eq) => (
@@ -344,55 +404,63 @@ export default function CalendarPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Customer Name
+            </label>
             <input
               type="text"
               value={formData.customer_name}
               onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Date <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Event Date <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <input
               type="date"
               value={formData.event_date}
               onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time Out</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Time Out
+              </label>
               <input
                 type="time"
                 value={formData.time_out}
                 onChange={(e) => setFormData({ ...formData, time_out: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time Due In</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Time Due In
+              </label>
               <input
                 type="time"
                 value={formData.time_due_in}
                 onChange={(e) => setFormData({ ...formData, time_due_in: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Status
+            </label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as ReservationStatus })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input select"
             >
               {statusLabels.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -403,22 +471,27 @@ export default function CalendarPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Condition Notes</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Condition Notes
+            </label>
             <textarea
               value={formData.condition_notes}
               onChange={(e) => setFormData({ ...formData, condition_notes: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input"
             />
           </div>
 
-          <div className="flex justify-between gap-3 pt-4 border-t">
+          <div
+            className="flex justify-between gap-3 pt-4 mt-4"
+            style={{ borderTop: '1px solid var(--color-border)' }}
+          >
             <div>
               {selectedReservation && (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="btn btn-danger"
                 >
                   Delete
                 </button>
@@ -428,14 +501,14 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="btn btn-primary"
               >
                 {saving ? 'Saving...' : selectedReservation ? 'Update' : 'Create'}
               </button>

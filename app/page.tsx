@@ -40,6 +40,24 @@ interface EquipmentAlert {
   maintenance_due_date: string | null;
 }
 
+const statCards = [
+  { key: 'totalCustomers', label: 'Customers', href: '/customers', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', color: 'accent' },
+  { key: 'totalEquipment', label: 'Equipment', href: '/equipment', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', color: 'secondary' },
+  { key: 'equipmentOut', label: 'Out Now', href: '/equipment?status=out', icon: 'M13 10V3L4 14h7v7l9-11h-7z', color: 'info' },
+  { key: 'activeOrders', label: 'Active Orders', href: '/orders', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'success' },
+  { key: 'todayEvents', label: 'Today', href: '/calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: 'warning' },
+  { key: 'pendingProposals', label: 'Proposals', href: '/orders?type=proposal', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'accent' },
+];
+
+const colorMap: Record<string, { bg: string; text: string; glow: string }> = {
+  accent: { bg: 'rgba(245, 166, 35, 0.1)', text: '#f5a623', glow: 'rgba(245, 166, 35, 0.3)' },
+  secondary: { bg: 'rgba(0, 212, 255, 0.1)', text: '#00d4ff', glow: 'rgba(0, 212, 255, 0.3)' },
+  success: { bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', glow: 'rgba(16, 185, 129, 0.3)' },
+  warning: { bg: 'rgba(245, 158, 11, 0.1)', text: '#f59e0b', glow: 'rgba(245, 158, 11, 0.3)' },
+  info: { bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6', glow: 'rgba(59, 130, 246, 0.3)' },
+  danger: { bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', glow: 'rgba(239, 68, 68, 0.3)' },
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
@@ -63,7 +81,6 @@ export default function DashboardPage() {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
 
-      // Fetch all data in parallel
       const [customersRes, equipmentRes, ordersRes, reservationsRes] = await Promise.all([
         fetch('/api/customers'),
         fetch('/api/equipment'),
@@ -76,7 +93,6 @@ export default function DashboardPage() {
       const orders = await ordersRes.json();
       const todayRes = await reservationsRes.json();
 
-      // Calculate stats
       const equipmentOut = equipment.filter((e: { status: string }) => e.status === 'out' || e.status === 'reserved').length;
       const activeOrders = orders.filter((o: { status: string }) => ['draft', 'sent', 'accepted'].includes(o.status)).length;
       const pendingProposals = orders.filter((o: { type: string; status: string }) => o.type === 'proposal' && o.status === 'sent').length;
@@ -90,13 +106,9 @@ export default function DashboardPage() {
         pendingProposals,
       });
 
-      // Recent orders (last 5)
       setRecentOrders(orders.slice(0, 5));
-
-      // Today's reservations
       setTodayReservations(todayRes);
 
-      // Equipment needing attention (maintenance due or out)
       const alerts = equipment.filter((e: EquipmentAlert) => {
         if (e.status === 'maintenance') return true;
         if (e.maintenance_due_date) {
@@ -125,83 +137,158 @@ export default function DashboardPage() {
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const getStatusBadge = (status: string, type?: string) => {
+    const badges: Record<string, string> = {
+      completed: 'badge-success',
+      accepted: 'badge-info',
+      sent: 'badge-warning',
+      draft: 'badge-neutral',
+      out: 'badge-info',
+      reserved: 'badge-warning',
+      maintenance: 'badge-danger',
+    };
+    return badges[status] || 'badge-neutral';
+  };
+
   if (loading) {
     return (
       <Layout>
-        <div className="text-center py-8 text-gray-500">Loading dashboard...</div>
+        <div className="space-y-6">
+          {/* Skeleton header */}
+          <div className="space-y-2">
+            <div className="skeleton h-10 w-64"></div>
+            <div className="skeleton h-5 w-96"></div>
+          </div>
+
+          {/* Skeleton stats */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="card p-4">
+                <div className="skeleton h-8 w-16 mb-2"></div>
+                <div className="skeleton h-4 w-20"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Skeleton cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="card p-6">
+                <div className="skeleton h-6 w-40 mb-4"></div>
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, j) => (
+                    <div key={j} className="skeleton h-16 w-full"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome to SSL Inc. Business Management</p>
+        <div className="animate-slide-up opacity-0" style={{ animationFillMode: 'forwards' }}>
+          <h1 className="text-4xl md:text-5xl gradient-text">Dashboard</h1>
+          <p style={{ color: 'var(--color-text-secondary)' }} className="mt-2">
+            Welcome back. Here&apos;s what&apos;s happening at SSL Inc.
+          </p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Link href="/customers" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-            <div className="text-3xl font-bold text-indigo-600">{stats.totalCustomers}</div>
-            <div className="text-sm text-gray-600">Customers</div>
-          </Link>
-
-          <Link href="/equipment" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-            <div className="text-3xl font-bold text-indigo-600">{stats.totalEquipment}</div>
-            <div className="text-sm text-gray-600">Equipment</div>
-          </Link>
-
-          <Link href="/equipment?status=out" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-            <div className="text-3xl font-bold text-blue-600">{stats.equipmentOut}</div>
-            <div className="text-sm text-gray-600">Equipment Out</div>
-          </Link>
-
-          <Link href="/orders" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-            <div className="text-3xl font-bold text-green-600">{stats.activeOrders}</div>
-            <div className="text-sm text-gray-600">Active Orders</div>
-          </Link>
-
-          <Link href="/calendar" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-            <div className="text-3xl font-bold text-yellow-600">{stats.todayEvents}</div>
-            <div className="text-sm text-gray-600">Today&apos;s Events</div>
-          </Link>
-
-          <Link href="/orders?type=proposal&status=sent" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-            <div className="text-3xl font-bold text-purple-600">{stats.pendingProposals}</div>
-            <div className="text-sm text-gray-600">Pending Proposals</div>
-          </Link>
+          {statCards.map((card, index) => {
+            const colors = colorMap[card.color];
+            const value = stats[card.key as keyof DashboardStats];
+            return (
+              <Link
+                key={card.key}
+                href={card.href}
+                className={`card card-glow p-4 group animate-slide-up opacity-0 stagger-${index + 1}`}
+                style={{ animationFillMode: 'forwards' }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center transition-all group-hover:scale-110"
+                    style={{ background: colors.bg }}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      style={{ color: colors.text }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={card.icon} />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  className="text-3xl font-bold transition-colors"
+                  style={{ color: colors.text }}
+                >
+                  {value}
+                </div>
+                <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                  {card.label}
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Today's Reservations */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Today&apos;s Reservations</h2>
-              <Link href="/calendar" className="text-sm text-indigo-600 hover:text-indigo-800">
+          <div className="card animate-slide-up opacity-0 stagger-2" style={{ animationFillMode: 'forwards' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-border)' }}>
+              <h2 className="text-xl" style={{ color: 'var(--color-text-primary)' }}>Today&apos;s Schedule</h2>
+              <Link href="/calendar" className="text-sm hover:underline" style={{ color: 'var(--color-accent)' }}>
                 View Calendar
               </Link>
             </div>
             <div className="p-6">
               {todayReservations.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No reservations for today</p>
+                <div className="text-center py-8">
+                  <div
+                    className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                    style={{ background: 'var(--color-bg-tertiary)' }}
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-muted)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No reservations for today</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {todayReservations.map((res) => (
-                    <div key={res.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium text-gray-900">{res.equipment_name}</div>
-                        <div className="text-sm text-gray-500">
-                          {res.customer_name || 'No customer'} {res.time_out && `- ${res.time_out}`}
+                    <div
+                      key={res.id}
+                      className="flex items-center justify-between p-4 rounded-lg transition-colors"
+                      style={{ background: 'var(--color-bg-secondary)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            background: res.status === 'out' ? 'var(--color-info)' : 'var(--color-warning)',
+                            boxShadow: `0 0 10px ${res.status === 'out' ? 'var(--color-info)' : 'var(--color-warning)'}`
+                          }}
+                        />
+                        <div>
+                          <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                            {res.equipment_name}
+                          </div>
+                          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                            {res.customer_name || 'No customer'} {res.time_out && `- ${res.time_out}`}
+                          </div>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        res.status === 'out' ? 'bg-blue-100 text-blue-800' :
-                        res.status === 'reserved' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span className={`badge ${getStatusBadge(res.status)}`}>
                         {res.status}
                       </span>
                     </div>
@@ -212,40 +299,50 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Orders */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
-              <Link href="/orders" className="text-sm text-indigo-600 hover:text-indigo-800">
+          <div className="card animate-slide-up opacity-0 stagger-3" style={{ animationFillMode: 'forwards' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-border)' }}>
+              <h2 className="text-xl" style={{ color: 'var(--color-text-primary)' }}>Recent Orders</h2>
+              <Link href="/orders" className="text-sm hover:underline" style={{ color: 'var(--color-accent)' }}>
                 View All
               </Link>
             </div>
             <div className="p-6">
               {recentOrders.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No orders yet</p>
+                <div className="text-center py-8">
+                  <div
+                    className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                    style={{ background: 'var(--color-bg-tertiary)' }}
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-muted)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No orders yet</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {recentOrders.map((order) => (
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-4 rounded-lg transition-all hover:translate-x-1"
+                      style={{ background: 'var(--color-bg-secondary)' }}
                     >
                       <div>
-                        <div className="font-medium text-gray-900">{order.order_number}</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="font-medium" style={{ color: 'var(--color-accent)' }}>
+                          {order.order_number}
+                        </div>
+                        <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                           {order.customer_name} - {formatDate(order.event_date)}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-gray-900">{formatCurrency(order.total_cost)}</div>
-                        <div className={`text-xs px-2 py-0.5 rounded-full inline-block ${
-                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'sent' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {order.type} - {order.status}
+                        <div className="font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                          {formatCurrency(order.total_cost)}
                         </div>
+                        <span className={`badge ${getStatusBadge(order.status)}`}>
+                          {order.type}
+                        </span>
                       </div>
                     </Link>
                   ))}
@@ -255,30 +352,54 @@ export default function DashboardPage() {
           </div>
 
           {/* Equipment Alerts */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Equipment Alerts</h2>
-              <Link href="/equipment?status=maintenance" className="text-sm text-indigo-600 hover:text-indigo-800">
+          <div className="card animate-slide-up opacity-0 stagger-4" style={{ animationFillMode: 'forwards' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-border)' }}>
+              <h2 className="text-xl" style={{ color: 'var(--color-text-primary)' }}>Equipment Alerts</h2>
+              <Link href="/equipment?status=maintenance" className="text-sm hover:underline" style={{ color: 'var(--color-accent)' }}>
                 View All
               </Link>
             </div>
             <div className="p-6">
               {equipmentAlerts.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No equipment alerts</p>
+                <div className="text-center py-8">
+                  <div
+                    className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(16, 185, 129, 0.1)' }}
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-success)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p style={{ color: 'var(--color-success)' }}>All equipment in good condition</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {equipmentAlerts.map((eq) => (
-                    <div key={eq.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                      <div>
-                        <div className="font-medium text-gray-900">{eq.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {eq.serial_number && `SN: ${eq.serial_number}`}
-                          {eq.maintenance_due_date && ` - Maintenance: ${formatDate(eq.maintenance_due_date)}`}
+                    <div
+                      key={eq.id}
+                      className="flex items-center justify-between p-4 rounded-lg"
+                      style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ background: 'rgba(239, 68, 68, 0.1)' }}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-danger)' }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                            {eq.name}
+                          </div>
+                          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                            {eq.serial_number && `SN: ${eq.serial_number}`}
+                            {eq.maintenance_due_date && ` - Due: ${formatDate(eq.maintenance_due_date)}`}
+                          </div>
                         </div>
                       </div>
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                        {eq.status}
-                      </span>
+                      <span className="badge badge-danger">{eq.status}</span>
                     </div>
                   ))}
                 </div>
@@ -287,35 +408,41 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+          <div className="card animate-slide-up opacity-0 stagger-5" style={{ animationFillMode: 'forwards' }}>
+            <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <h2 className="text-xl" style={{ color: 'var(--color-text-primary)' }}>Quick Actions</h2>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              <Link
-                href="/customers"
-                className="p-4 bg-indigo-50 rounded-lg text-center hover:bg-indigo-100 transition-colors"
-              >
-                <div className="text-indigo-600 font-medium">+ New Customer</div>
-              </Link>
-              <Link
-                href="/equipment"
-                className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition-colors"
-              >
-                <div className="text-green-600 font-medium">+ New Equipment</div>
-              </Link>
-              <Link
-                href="/orders"
-                className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors"
-              >
-                <div className="text-blue-600 font-medium">+ New Order</div>
-              </Link>
-              <Link
-                href="/calendar"
-                className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition-colors"
-              >
-                <div className="text-yellow-600 font-medium">+ New Reservation</div>
-              </Link>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { href: '/customers', label: 'New Customer', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', color: 'accent' },
+                  { href: '/equipment', label: 'New Equipment', icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6', color: 'secondary' },
+                  { href: '/orders', label: 'New Order', icon: 'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'success' },
+                  { href: '/calendar', label: 'New Reservation', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', color: 'warning' },
+                ].map((action) => {
+                  const colors = colorMap[action.color];
+                  return (
+                    <Link
+                      key={action.href}
+                      href={action.href}
+                      className="p-4 rounded-lg text-center transition-all hover:scale-105 group"
+                      style={{ background: colors.bg, border: `1px solid ${colors.text}20` }}
+                    >
+                      <div
+                        className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+                        style={{ background: `${colors.text}20` }}
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: colors.text }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={action.icon} />
+                        </svg>
+                      </div>
+                      <div className="font-medium" style={{ color: colors.text }}>
+                        {action.label}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

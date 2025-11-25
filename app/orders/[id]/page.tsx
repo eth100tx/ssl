@@ -12,12 +12,12 @@ const orderTypes: { value: OrderType; label: string }[] = [
   { value: 'invoice', label: 'Invoice' },
 ];
 
-const orderStatuses: { value: OrderStatus; label: string }[] = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'sent', label: 'Sent' },
-  { value: 'accepted', label: 'Accepted' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+const orderStatuses: { value: OrderStatus; label: string; badge: string }[] = [
+  { value: 'draft', label: 'Draft', badge: 'badge-neutral' },
+  { value: 'sent', label: 'Sent', badge: 'badge-info' },
+  { value: 'accepted', label: 'Accepted', badge: 'badge-success' },
+  { value: 'completed', label: 'Completed', badge: 'badge-accent' },
+  { value: 'cancelled', label: 'Cancelled', badge: 'badge-danger' },
 ];
 
 interface OrderWithDetails extends Order {
@@ -190,10 +190,32 @@ export default function OrderDetailPage() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
+  const getStatusBadge = (status: OrderStatus) => {
+    return orderStatuses.find((s) => s.value === status)?.badge || 'badge-neutral';
+  };
+
   if (loading) {
     return (
       <Layout>
-        <div className="text-center py-8 text-gray-500">Loading order...</div>
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="skeleton h-8 w-48" />
+              <div className="skeleton h-4 w-32" />
+            </div>
+            <div className="flex gap-2">
+              <div className="skeleton h-10 w-20" />
+              <div className="skeleton h-10 w-32" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="skeleton h-64" />
+              <div className="skeleton h-48" />
+            </div>
+            <div className="skeleton h-64" />
+          </div>
+        </div>
       </Layout>
     );
   }
@@ -201,33 +223,49 @@ export default function OrderDetailPage() {
   if (!order) {
     return (
       <Layout>
-        <div className="text-center py-8 text-gray-500">Order not found</div>
+        <div className="text-center py-12">
+          <svg
+            className="w-16 h-16 mx-auto mb-4"
+            style={{ color: 'var(--color-text-muted)' }}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p style={{ color: 'var(--color-text-muted)' }}>Order not found</p>
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{order.order_number}</h1>
-            <p className="text-gray-600">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                {order.order_number}
+              </h1>
+              <span className={`badge ${getStatusBadge(order.status)}`}>{order.status}</span>
+            </div>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
               {order.customer_name} {order.customer_company && `(${order.customer_company})`}
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => router.push('/orders')}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn btn-secondary"
             >
               Back
             </button>
             <button
               onClick={handleSaveOrder}
               disabled={saving}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="btn btn-primary"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -238,15 +276,19 @@ export default function OrderDetailPage() {
           {/* Order Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
+            <div className="card p-6">
+              <h2 className="text-lg tracking-wider mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                Order Details
+              </h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Customer
+                  </label>
                   <select
                     value={order.customer_id}
                     onChange={(e) => setOrder({ ...order, customer_id: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input select"
                   >
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -257,11 +299,13 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Type
+                  </label>
                   <select
                     value={order.type}
                     onChange={(e) => setOrder({ ...order, type: e.target.value as OrderType })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input select"
                   >
                     {orderTypes.map((t) => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -270,11 +314,13 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Status
+                  </label>
                   <select
                     value={order.status}
                     onChange={(e) => setOrder({ ...order, status: e.target.value as OrderStatus })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input select"
                   >
                     {orderStatuses.map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
@@ -283,86 +329,104 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Event Date
+                  </label>
                   <input
                     type="date"
                     value={order.event_date?.split('T')[0] || ''}
                     onChange={(e) => setOrder({ ...order, event_date: e.target.value || null })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Payment Method
+                  </label>
                   <input
                     type="text"
                     value={order.payment_method || ''}
                     onChange={(e) => setOrder({ ...order, payment_method: e.target.value || null })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Payment Terms
+                  </label>
                   <input
                     type="text"
                     value={order.payment_terms || ''}
                     onChange={(e) => setOrder({ ...order, payment_terms: e.target.value || null })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Comments</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Comments
+                  </label>
                   <textarea
                     value={order.comments || ''}
                     onChange={(e) => setOrder({ ...order, comments: e.target.value || null })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
               </div>
             </div>
 
             {/* Event Location */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Event Location</h2>
+            <div className="card p-6">
+              <h2 className="text-lg tracking-wider mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                Event Location
+              </h2>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Address
+                  </label>
                   <input
                     type="text"
                     value={order.event_address || ''}
                     onChange={(e) => setOrder({ ...order, event_address: e.target.value || null })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    City
+                  </label>
                   <input
                     type="text"
                     value={order.event_city || ''}
                     onChange={(e) => setOrder({ ...order, event_city: e.target.value || null })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      State
+                    </label>
                     <input
                       type="text"
                       value={order.event_state || ''}
                       onChange={(e) => setOrder({ ...order, event_state: e.target.value || null })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="input"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ZIP</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      ZIP
+                    </label>
                     <input
                       type="text"
                       value={order.event_zip || ''}
                       onChange={(e) => setOrder({ ...order, event_zip: e.target.value || null })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="input"
                     />
                   </div>
                 </div>
@@ -370,83 +434,121 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Line Items */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="card p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Line Items</h2>
+                <h2 className="text-lg tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                  Line Items
+                </h2>
                 <button
                   onClick={() => setIsItemModalOpen(true)}
-                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  className="btn btn-primary text-sm"
                 >
-                  + Add Item
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Item
                 </button>
               </div>
 
               {(!order.items || order.items.length === 0) ? (
-                <p className="text-gray-500 text-center py-4">No items added yet.</p>
+                <div className="text-center py-8">
+                  <svg
+                    className="w-12 h-12 mx-auto mb-3"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No items added yet.</p>
+                </div>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty/Hrs</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                      <th className="px-4 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {order.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-2 text-sm capitalize">{item.item_type}</td>
-                        <td className="px-4 py-2 text-sm">
-                          {item.equipment_name || item.description || '-'}
-                          {item.equipment_serial && (
-                            <span className="text-gray-500 text-xs ml-1">({item.equipment_serial})</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-right">
-                          {item.item_type === 'operator' ? item.hours : item.quantity}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-right">{formatCurrency(item.unit_price)}</td>
-                        <td className="px-4 py-2 text-sm text-right font-medium">{formatCurrency(item.total)}</td>
-                        <td className="px-4 py-2 text-right">
-                          <button
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
-                        </td>
+                <div className="overflow-hidden rounded-lg" style={{ border: '1px solid var(--color-border)' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th className="text-right">Qty/Hrs</th>
+                        <th className="text-right">Price</th>
+                        <th className="text-right">Total</th>
+                        <th></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {order.items.map((item, index) => (
+                        <tr key={item.id} className={`animate-slide-up stagger-${Math.min(index + 1, 6)}`}>
+                          <td>
+                            <span className="badge badge-neutral capitalize">{item.item_type}</span>
+                          </td>
+                          <td>
+                            <span style={{ color: 'var(--color-text-primary)' }}>
+                              {item.equipment_name || item.description || '-'}
+                            </span>
+                            {item.equipment_serial && (
+                              <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>
+                                ({item.equipment_serial})
+                              </span>
+                            )}
+                          </td>
+                          <td className="text-right" style={{ color: 'var(--color-text-secondary)' }}>
+                            {item.item_type === 'operator' ? item.hours : item.quantity}
+                          </td>
+                          <td className="text-right" style={{ color: 'var(--color-text-secondary)' }}>
+                            {formatCurrency(item.unit_price)}
+                          </td>
+                          <td className="text-right font-medium" style={{ color: 'var(--color-accent)' }}>
+                            {formatCurrency(item.total)}
+                          </td>
+                          <td className="text-right">
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-1 rounded transition-colors"
+                              style={{ color: 'var(--color-danger)' }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
 
           {/* Sidebar - Totals */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+            <div className="card p-6">
+              <h2 className="text-lg tracking-wider mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                Order Summary
+              </h2>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Equipment Sales</span>
-                  <span className="font-medium">{formatCurrency(order.sales_total)}</span>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Equipment Sales</span>
+                  <span style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(order.sales_total)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Equipment Rentals</span>
-                  <span className="font-medium">{formatCurrency(order.rental_total)}</span>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Equipment Rentals</span>
+                  <span style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(order.rental_total)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Operator Support</span>
-                  <span className="font-medium">{formatCurrency(order.operator_total)}</span>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Operator Support</span>
+                  <span style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(order.operator_total)}</span>
                 </div>
-                <div className="border-t pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-lg font-semibold text-gray-900">Total</span>
-                    <span className="text-lg font-bold text-indigo-600">
+                <div className="pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg tracking-wider" style={{ color: 'var(--color-text-primary)' }}>Total</span>
+                    <span
+                      className="text-2xl font-bold"
+                      style={{ color: 'var(--color-accent)' }}
+                    >
                       {formatCurrency(order.total_cost)}
                     </span>
                   </div>
@@ -455,14 +557,20 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Customer Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Info</h2>
-              <div className="text-sm space-y-1">
-                <p className="font-medium">{order.customer_name}</p>
-                {order.customer_company && <p className="text-gray-600">{order.customer_company}</p>}
-                {order.customer_phone && <p className="text-gray-600">{order.customer_phone}</p>}
+            <div className="card p-6">
+              <h2 className="text-lg tracking-wider mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                Customer Info
+              </h2>
+              <div className="space-y-2 text-sm">
+                <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{order.customer_name}</p>
+                {order.customer_company && (
+                  <p style={{ color: 'var(--color-text-muted)' }}>{order.customer_company}</p>
+                )}
+                {order.customer_phone && (
+                  <p style={{ color: 'var(--color-text-muted)' }}>{order.customer_phone}</p>
+                )}
                 {order.customer_address && (
-                  <p className="text-gray-600">
+                  <p style={{ color: 'var(--color-text-muted)' }}>
                     {order.customer_address}<br />
                     {[order.customer_city, order.customer_state, order.customer_zip].filter(Boolean).join(', ')}
                   </p>
@@ -482,11 +590,13 @@ export default function OrderDetailPage() {
       >
         <form onSubmit={handleAddItem} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Item Type</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Item Type
+            </label>
             <select
               value={itemForm.item_type}
               onChange={(e) => setItemForm({ ...itemForm, item_type: e.target.value as OrderItemType })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input select"
             >
               <option value="sale">Equipment Sale</option>
               <option value="rental">Equipment Rental</option>
@@ -496,11 +606,13 @@ export default function OrderDetailPage() {
 
           {itemForm.item_type !== 'operator' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Equipment</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Equipment
+              </label>
               <select
                 value={itemForm.equipment_id}
                 onChange={(e) => handleEquipmentSelect(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input select"
               >
                 <option value="">Select equipment...</option>
                 {equipment.map((eq) => (
@@ -513,35 +625,41 @@ export default function OrderDetailPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Description
+            </label>
             <input
               type="text"
               value={itemForm.description}
               onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input"
             />
           </div>
 
           {itemForm.item_type === 'operator' ? (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate ($)</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                  Hourly Rate ($)
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   value={itemForm.unit_price}
                   onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="input"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                  Hours
+                </label>
                 <input
                   type="number"
                   step="0.5"
                   value={itemForm.hours}
                   onChange={(e) => setItemForm({ ...itemForm, hours: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="input"
                 />
               </div>
             </>
@@ -549,16 +667,18 @@ export default function OrderDetailPage() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Quantity
+                  </label>
                   <input
                     type="number"
                     value={itemForm.quantity}
                     onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                     {itemForm.item_type === 'rental' ? 'Rate ($/day)' : 'Price ($)'}
                   </label>
                   <input
@@ -566,7 +686,7 @@ export default function OrderDetailPage() {
                     step="0.01"
                     value={itemForm.unit_price}
                     onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input"
                   />
                 </div>
               </div>
@@ -574,21 +694,25 @@ export default function OrderDetailPage() {
               {itemForm.item_type === 'rental' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rental Start</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      Rental Start
+                    </label>
                     <input
                       type="date"
                       value={itemForm.rental_start}
                       onChange={(e) => setItemForm({ ...itemForm, rental_start: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="input"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rental End</label>
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      Rental End
+                    </label>
                     <input
                       type="date"
                       value={itemForm.rental_end}
                       onChange={(e) => setItemForm({ ...itemForm, rental_end: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="input"
                     />
                   </div>
                 </div>
@@ -596,17 +720,20 @@ export default function OrderDetailPage() {
             </>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div
+            className="flex justify-end gap-3 pt-4 mt-4"
+            style={{ borderTop: '1px solid var(--color-border)' }}
+          >
             <button
               type="button"
               onClick={() => setIsItemModalOpen(false)}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="btn btn-primary"
             >
               Add Item
             </button>
