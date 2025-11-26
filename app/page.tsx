@@ -199,8 +199,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Stats Grid - Compact */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {statCards.map((card, index) => {
             const colors = colorMap[card.color];
             const value = stats[card.key as keyof DashboardStats];
@@ -208,32 +208,16 @@ export default function DashboardPage() {
               <Link
                 key={card.key}
                 href={card.href}
-                className={`card card-glow p-4 group animate-slide-up opacity-0 stagger-${index + 1}`}
+                className={`card card-glow px-3 py-2 group animate-slide-up opacity-0 stagger-${index + 1} flex items-center gap-2`}
                 style={{ animationFillMode: 'forwards' }}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center transition-all group-hover:scale-110"
-                    style={{ background: colors.bg }}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      style={{ color: colors.text }}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={card.icon} />
-                    </svg>
-                  </div>
-                </div>
                 <div
-                  className="text-3xl font-bold transition-colors"
+                  className="text-2xl font-bold transition-colors"
                   style={{ color: colors.text }}
                 >
                   {value}
                 </div>
-                <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <div className="text-xs leading-tight" style={{ color: 'var(--color-text-secondary)' }}>
                   {card.label}
                 </div>
               </Link>
@@ -409,40 +393,45 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <div className="card animate-slide-up opacity-0 stagger-5" style={{ animationFillMode: 'forwards' }}>
-            <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-              <h2 className="text-xl" style={{ color: 'var(--color-text-primary)' }}>Quick Actions</h2>
+            <div className="px-6 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <h2 className="text-lg" style={{ color: 'var(--color-text-primary)' }}>Quick Actions</h2>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4">
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { href: '/customers', label: 'New Customer', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', color: 'accent' },
-                  { href: '/equipment', label: 'New Equipment', icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6', color: 'secondary' },
-                  { href: '/orders', label: 'New Order', icon: 'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'success' },
-                  { href: '/calendar', label: 'New Reservation', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', color: 'warning' },
+                  { href: '/customers', label: 'New Customer', color: 'accent' },
+                  { href: '/equipment', label: 'New Equipment', color: 'secondary' },
+                  { href: '/orders', label: 'New Order', color: 'success' },
+                  { href: '/calendar', label: 'New Reservation', color: 'warning' },
                 ].map((action) => {
                   const colors = colorMap[action.color];
                   return (
                     <Link
                       key={action.href}
                       href={action.href}
-                      className="p-4 rounded-lg text-center transition-all hover:scale-105 group"
+                      className="px-3 py-2 rounded-lg text-center transition-all hover:scale-105"
                       style={{ background: colors.bg, border: `1px solid ${colors.text}20` }}
                     >
-                      <div
-                        className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                        style={{ background: `${colors.text}20` }}
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: colors.text }}>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={action.icon} />
-                        </svg>
-                      </div>
-                      <div className="font-medium" style={{ color: colors.text }}>
+                      <div className="font-medium text-sm" style={{ color: colors.text }}>
                         {action.label}
                       </div>
                     </Link>
                   );
                 })}
               </div>
+              {/* Company Info Link */}
+              <Link
+                href="/about"
+                className="mt-3 px-3 py-2 rounded-lg text-center transition-all hover:scale-[1.02] flex items-center justify-center gap-2 w-full"
+                style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)' }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                  Mission, Vision & Values
+                </span>
+              </Link>
             </div>
           </div>
         </div>

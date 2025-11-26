@@ -173,13 +173,109 @@ reservations
 - **Database**: MySQL (Railway)
 - **Deployment**: Railway
 
+### Phase 2 - Employee & Reporting (Current)
+
+#### 5. Employee Management
+- Create/edit/view employees (full-time and contract workers)
+- Fields: ID, name, role (president/secretary/technician/contract), phone, address, skills, hourly rate, status
+- Employee types:
+  - Full-time: Tom (President), Martha (Secretary/Accounting), Burt & Ernie (Technicians)
+  - Contract Workers: Equipment operators hired for events
+- Performance notes for contract workers
+
+#### 6. Employee Scheduling
+- Assign employees to orders/events
+- Track scheduled work: date, order/customer, required time in/out, actual time in/out, hours
+- View employee schedules by date range
+- Check availability before assignment
+- Track overtime hours
+
+#### 7. Basic Reporting
+- **Equipment Utilization**: Which equipment is rented most, rental frequency, revenue per item
+- **Customer Revenue**: Revenue by customer (sales, rentals, operator support)
+- **Employee Hours**: Hours worked by employee, overtime tracking
+- **Revenue Summary**: Monthly/yearly revenue by category (30% sales, 40% rental, 20% operator, 10% consulting)
+
+### Data Model (Phase 2 Additions)
+
+```
+employees
+- id (PK)
+- name
+- role (president/secretary/technician/contract)
+- phone
+- address
+- city
+- state
+- zip
+- email
+- skills (text - description of skills)
+- hourly_rate
+- status (active/inactive)
+- notes
+- created_at
+- updated_at
+
+employee_schedules
+- id (PK)
+- employee_id (FK)
+- order_id (FK, nullable)
+- schedule_date
+- required_time_in
+- required_time_out
+- actual_time_in
+- actual_time_out
+- hours_worked
+- overtime_hours
+- notes
+- status (scheduled/completed/cancelled)
+- created_at
+- updated_at
+```
+
+### API Endpoints (Phase 2)
+
+```
+# Employees
+GET    /api/employees
+GET    /api/employees/:id
+POST   /api/employees
+PUT    /api/employees/:id
+DELETE /api/employees/:id
+GET    /api/employees/:id/schedule?start=&end=
+
+# Employee Schedules
+GET    /api/schedules
+GET    /api/schedules?date=&employee_id=
+POST   /api/schedules
+PUT    /api/schedules/:id
+DELETE /api/schedules/:id
+
+# Reports
+GET    /api/reports/equipment-utilization?start=&end=
+GET    /api/reports/customer-revenue?start=&end=
+GET    /api/reports/employee-hours?start=&end=
+GET    /api/reports/revenue-summary?start=&end=
+```
+
+### UI Pages (Phase 2)
+
+6. **Employees** (`/employees`)
+   - List view with role filter
+   - Create/edit employee modal
+   - Employee detail with schedule history
+
+7. **Reports** (`/reports`)
+   - Date range selector
+   - Equipment utilization chart/table
+   - Customer revenue breakdown
+   - Employee hours summary
+   - Revenue by category pie chart
+
 ### Out of Scope (Future Phases)
 
-- Employee/technician management
-- Contract worker tracking & scheduling
-- Worker performance evaluations
-- Reporting & analytics dashboard
-- Consulting services tracking
+- Worker performance evaluations (formal scoring system)
+- Consulting services tracking (separate module)
 - Payment processing integration
 - Mobile app
 - Multi-user authentication & roles

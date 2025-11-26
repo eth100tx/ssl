@@ -77,6 +77,7 @@ export interface OrderItem {
   equipment_id: number | null;
   item_type: OrderItemType;
   description: string | null;
+  skill: string | null;
   quantity: number;
   unit_price: number | null;
   rental_start: string | null;
@@ -86,6 +87,17 @@ export interface OrderItem {
   created_at: string;
   // Joined fields
   equipment?: Equipment;
+}
+
+export interface OrderWorker {
+  id: number;
+  order_id: number;
+  employee_id: number;
+  role: string | null;
+  notes: string | null;
+  created_at: string;
+  // Joined fields
+  employee?: Employee;
 }
 
 export type ReservationStatus = 'reserved' | 'out' | 'returned' | 'cancelled';
@@ -106,5 +118,50 @@ export interface Reservation {
   updated_at: string;
   // Joined fields
   equipment?: Equipment;
+  order?: Order;
+}
+
+// Employee types
+export type EmployeeRole = 'president' | 'secretary' | 'technician' | 'contract';
+export type EmployeeStatus = 'active' | 'inactive';
+
+export interface Employee {
+  id: number;
+  name: string;
+  role: EmployeeRole;
+  phone: string | null;
+  beeper: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  email: string | null;
+  skills: string | null;
+  hourly_rate: number | null;
+  status: EmployeeStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ScheduleStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export interface EmployeeSchedule {
+  id: number;
+  employee_id: number;
+  order_id: number | null;
+  schedule_date: string;
+  required_time_in: string | null;
+  required_time_out: string | null;
+  actual_time_in: string | null;
+  actual_time_out: string | null;
+  hours_worked: number | null;
+  overtime_hours: number | null;
+  notes: string | null;
+  status: ScheduleStatus;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  employee?: Employee;
   order?: Order;
 }

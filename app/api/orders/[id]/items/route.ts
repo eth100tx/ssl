@@ -46,7 +46,7 @@ export async function POST(
     const orderId = parseInt(id);
     const body = await request.json();
     const {
-      equipment_id, item_type, description, quantity, unit_price,
+      equipment_id, item_type, description, skill, quantity, unit_price,
       rental_start, rental_end, hours
     } = body;
 
@@ -73,10 +73,10 @@ export async function POST(
 
     const [result] = await pool.query<ResultSetHeader>(
       `INSERT INTO order_items
-       (order_id, equipment_id, item_type, description, quantity, unit_price, rental_start, rental_end, hours, total)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (order_id, equipment_id, item_type, description, skill, quantity, unit_price, rental_start, rental_end, hours, total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        orderId, equipment_id || null, item_type, description || null,
+        orderId, equipment_id || null, item_type, description || null, skill || null,
         qty, price || null, rental_start || null, rental_end || null, hours || null, total
       ]
     );

@@ -69,6 +69,28 @@ reservations ──────────────────────�
 │ status: 'reserved'|'out'|'returned'|'cancel' │
 │ condition_notes, created_at, updated_at      │
 └──────────────────────────────────────────────┘
+
+employees ──────────────────────────────────────
+│ id (PK)                                      │
+│ name, role, phone, email                     │
+│ address, city, state, zip                    │
+│ skills, hourly_rate                          │
+│ status: 'active' | 'inactive'                │
+│ notes, created_at, updated_at                │
+└──────────────────────────────────────────────┘
+         │
+         │ employee_id (FK)
+         ▼
+employee_schedules ─────────────────────────────
+│ id (PK), employee_id (FK → employees)        │
+│ order_id (FK → orders, nullable)             │
+│ schedule_date                                │
+│ required_time_in, required_time_out          │
+│ actual_time_in, actual_time_out              │
+│ hours_worked, overtime_hours                 │
+│ status: 'scheduled'|'completed'|'cancelled'  │
+│ notes, created_at, updated_at                │
+└──────────────────────────────────────────────┘
 ```
 
 ### Key Relationships
@@ -77,6 +99,8 @@ reservations ──────────────────────�
 2. **Order → Order Items**: One order has many line items
 3. **Equipment → Order Items**: Equipment can appear in multiple order items
 4. **Equipment → Reservations**: One equipment can have many reservations (different dates)
+5. **Employee → Schedules**: One employee can have many schedule entries
+6. **Order → Employee Schedules**: Employees can be assigned to orders/events
 
 ---
 
@@ -129,6 +153,35 @@ reservations ──────────────────────�
 | PUT | `/api/reservations/[id]` | Update reservation |
 | DELETE | `/api/reservations/[id]` | Delete reservation |
 
+### Employees (`/api/employees`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/employees` | List all, optional `?search=&role=&status=` |
+| GET | `/api/employees/[id]` | Get single employee |
+| POST | `/api/employees` | Create employee |
+| PUT | `/api/employees/[id]` | Update employee |
+| DELETE | `/api/employees/[id]` | Delete employee |
+
+### Schedules (`/api/schedules`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/schedules` | List by `?employee_id=&start=&end=&status=` |
+| GET | `/api/schedules/[id]` | Get single schedule |
+| POST | `/api/schedules` | Create schedule |
+| PUT | `/api/schedules/[id]` | Update schedule |
+| DELETE | `/api/schedules/[id]` | Delete schedule |
+
+### Reports (`/api/reports`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/reports?type=revenue-summary` | Revenue breakdown by category |
+| GET | `/api/reports?type=equipment-utilization` | Equipment rental/reservation counts |
+| GET | `/api/reports?type=customer-revenue` | Revenue by customer |
+| GET | `/api/reports?type=employee-hours` | Hours worked by employee |
+
 ---
 
 ## Frontend Pages
@@ -168,6 +221,20 @@ reservations ──────────────────────�
 - Color-coded by status
 - Click day to add reservation
 - Click reservation to edit
+
+### Employees (`/employees`)
+- Role filter cards (President, Secretary, Technician, Contract)
+- Searchable table
+- Add/Edit employee modal
+- View/Add schedule per employee
+
+### Reports (`/reports`)
+- Report type selector (Revenue, Equipment, Customer, Employee)
+- Date range picker with presets
+- Revenue Summary: category breakdown with monthly trends
+- Equipment Utilization: rental counts and revenue per item
+- Customer Revenue: revenue breakdown by customer
+- Employee Hours: hours worked and estimated pay
 
 ---
 

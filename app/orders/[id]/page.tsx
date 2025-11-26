@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import Modal from '@/components/Modal';
-import { Order, OrderItem, OrderType, OrderStatus, Customer, Equipment, OrderItemType } from '@/lib/types';
+import { Order, OrderItem, OrderType, OrderStatus, Customer, Equipment, OrderItemType, Employee } from '@/lib/types';
 
 const orderTypes: { value: OrderType; label: string }[] = [
   { value: 'proposal', label: 'Proposal' },
@@ -31,6 +31,19 @@ interface OrderWithDetails extends Order {
   items?: (OrderItem & { equipment_name?: string; equipment_serial?: string })[];
 }
 
+interface OrderWorker {
+  id: number;
+  order_id: number;
+  employee_id: number;
+  role: string | null;
+  notes: string | null;
+  employee_name: string;
+  employee_role: string;
+  employee_phone: string | null;
+  employee_beeper: string | null;
+  skills: string | null;
+}
+
 export default function OrderDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -41,10 +54,19 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
+  const [workers, setWorkers] = useState<OrderWorker[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [workerForm, setWorkerForm] = useState({
+    employee_id: '',
+    role: '',
+    notes: '',
+  });
   const [itemForm, setItemForm] = useState({
     item_type: 'rental' as OrderItemType,
     equipment_id: '',
     description: '',
+    skill: '',
     quantity: '1',
     unit_price: '',
     rental_start: '',
@@ -56,6 +78,8 @@ export default function OrderDetailPage() {
     fetchOrder();
     fetchCustomers();
     fetchEquipment();
+    fetchEmployees();
+    fetchWorkers();
   }, [id]);
 
   const fetchOrder = async () => {
@@ -92,6 +116,26 @@ export default function OrderDetailPage() {
       setEquipment(data);
     } catch (error) {
       console.error('Failed to fetch equipment:', error);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch('/api/employees?status=active');
+      const data = await res.json();
+      setEmployees(data);
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+    }
+  };
+
+  const fetchWorkers = async () => {
+    try {
+      const res = await fetch(`/api/orders/${id}/workers`);
+      const data = await res.json();
+      setWorkers(data);
+    } catch (error) {
+      console.error('Failed to fetch workers:', error);
     }
   };
 
@@ -139,6 +183,7 @@ export default function OrderDetailPage() {
           item_type: 'rental',
           equipment_id: '',
           description: '',
+          skill: '',
           quantity: '1',
           unit_price: '',
           rental_start: '',
@@ -182,6 +227,47 @@ export default function OrderDetailPage() {
             : (eq.rental_rate?.toString() || ''),
         });
       }
+    }
+  };
+
+  const handleAddWorker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workerForm.employee_id) return;
+
+    try {
+      const res = await fetch(`/api/orders/${id}/workers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: parseInt(workerForm.employee_id),
+          role: workerForm.role || null,
+          notes: workerForm.notes || null,
+        }),
+      });
+
+      if (res.ok) {
+        setIsWorkerModalOpen(false);
+        setWorkerForm({ employee_id: '', role: '', notes: '' });
+        fetchWorkers();
+      }
+    } catch (error) {
+      console.error('Failed to add worker:', error);
+    }
+  };
+
+  const handleRemoveWorker = async (workerId: number) => {
+    if (!confirm('Remove this worker from the order?')) return;
+
+    try {
+      const res = await fetch(`/api/orders/${id}/workers/${workerId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        fetchWorkers();
+      }
+    } catch (error) {
+      console.error('Failed to remove worker:', error);
     }
   };
 
@@ -261,6 +347,16 @@ export default function OrderDetailPage() {
               className="btn btn-secondary"
             >
               Back
+            </button>
+            <button
+              onClick={() => router.push(`/orders/${id}/support-sheet`)}
+              className="btn btn-secondary"
+              title="Print Event Support Sheet"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Support Sheet
             </button>
             <button
               onClick={handleSaveOrder}
@@ -491,6 +587,11 @@ export default function OrderDetailPage() {
                                 ({item.equipment_serial})
                               </span>
                             )}
+                            {item.item_type === 'operator' && (item as any).skill && (
+                              <div className="text-xs mt-1" style={{ color: 'var(--color-info)' }}>
+                                Skill: {(item as any).skill}
+                              </div>
+                            )}
                           </td>
                           <td className="text-right" style={{ color: 'var(--color-text-secondary)' }}>
                             {item.item_type === 'operator' ? item.hours : item.quantity}
@@ -518,6 +619,88 @@ export default function OrderDetailPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+
+            {/* Assigned Workers */}
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                  Assigned Workers
+                </h2>
+                <button
+                  onClick={() => setIsWorkerModalOpen(true)}
+                  className="btn btn-primary text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Assign Worker
+                </button>
+              </div>
+
+              {workers.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg
+                    className="w-12 h-12 mx-auto mb-3"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No workers assigned yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {workers.map((worker) => (
+                    <div
+                      key={worker.id}
+                      className="flex items-center justify-between p-3 rounded-lg"
+                      style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                          style={{
+                            backgroundColor: 'rgba(245, 166, 35, 0.2)',
+                            color: 'var(--color-accent)',
+                          }}
+                        >
+                          {worker.employee_name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                            {worker.employee_name}
+                          </div>
+                          <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                            {worker.employee_role}
+                            {worker.role && ` - ${worker.role}`}
+                            {worker.employee_phone && ` | ${worker.employee_phone}`}
+                            {worker.employee_beeper && ` | Beeper: ${worker.employee_beeper}`}
+                          </div>
+                          {worker.skills && (
+                            <div className="text-xs mt-1" style={{ color: 'var(--color-info)' }}>
+                              {worker.skills}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveWorker(worker.id)}
+                        className="p-1 rounded transition-colors"
+                        style={{ color: 'var(--color-danger)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -640,27 +823,41 @@ export default function OrderDetailPage() {
             <>
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  Hourly Rate ($)
+                  Skill Required
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={itemForm.unit_price}
-                  onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })}
+                  type="text"
+                  value={itemForm.skill}
+                  onChange={(e) => setItemForm({ ...itemForm, skill: e.target.value })}
                   className="input"
+                  placeholder="e.g., Audio Engineering, Lighting, Video"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  Hours
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={itemForm.hours}
-                  onChange={(e) => setItemForm({ ...itemForm, hours: e.target.value })}
-                  className="input"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Hourly Rate ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemForm.unit_price}
+                    onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Hours
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={itemForm.hours}
+                    onChange={(e) => setItemForm({ ...itemForm, hours: e.target.value })}
+                    className="input"
+                  />
+                </div>
               </div>
             </>
           ) : (
@@ -736,6 +933,83 @@ export default function OrderDetailPage() {
               className="btn btn-primary"
             >
               Add Item
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Assign Worker Modal */}
+      <Modal
+        isOpen={isWorkerModalOpen}
+        onClose={() => setIsWorkerModalOpen(false)}
+        title="Assign Worker"
+        size="md"
+      >
+        <form onSubmit={handleAddWorker} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Employee <span style={{ color: 'var(--color-danger)' }}>*</span>
+            </label>
+            <select
+              value={workerForm.employee_id}
+              onChange={(e) => setWorkerForm({ ...workerForm, employee_id: e.target.value })}
+              required
+              className="input select"
+            >
+              <option value="">Select employee...</option>
+              {employees
+                .filter((emp) => !workers.some((w) => w.employee_id === emp.id))
+                .map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name} ({emp.role})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Role on this Event
+            </label>
+            <input
+              type="text"
+              value={workerForm.role}
+              onChange={(e) => setWorkerForm({ ...workerForm, role: e.target.value })}
+              className="input"
+              placeholder="e.g., Lead Audio Engineer, Lighting Assistant"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+              Notes
+            </label>
+            <textarea
+              value={workerForm.notes}
+              onChange={(e) => setWorkerForm({ ...workerForm, notes: e.target.value })}
+              rows={2}
+              className="input"
+              placeholder="Special instructions, equipment responsibilities..."
+            />
+          </div>
+
+          <div
+            className="flex justify-end gap-3 pt-4 mt-4"
+            style={{ borderTop: '1px solid var(--color-border)' }}
+          >
+            <button
+              type="button"
+              onClick={() => setIsWorkerModalOpen(false)}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!workerForm.employee_id}
+              className="btn btn-primary"
+            >
+              Assign Worker
             </button>
           </div>
         </form>
