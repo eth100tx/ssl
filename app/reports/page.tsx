@@ -77,7 +77,7 @@ export default function ReportsPage() {
               className={`card p-4 text-left transition-all ${reportType === type.id ? 'ring-2' : ''}`}
               style={{
                 borderColor: reportType === type.id ? 'var(--color-accent)' : 'var(--color-border)',
-                ringColor: reportType === type.id ? 'var(--color-accent)' : undefined,
+                boxShadow: reportType === type.id ? '0 0 0 2px var(--color-accent)' : undefined,
               }}
             >
               <svg

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import Modal from '@/components/Modal';
-import { Employee, EmployeeRole, EmployeeSchedule, Order } from '@/lib/types';
+import { Employee, EmployeeRole, EmployeeStatus, EmployeeSchedule, Order } from '@/lib/types';
 
 const emptyEmployee = {
   name: '',
@@ -17,7 +17,7 @@ const emptyEmployee = {
   email: '',
   skills: '',
   hourly_rate: '',
-  status: 'active' as const,
+  status: 'active' as EmployeeStatus,
   notes: '',
 };
 
@@ -272,7 +272,7 @@ export default function EmployeesPage() {
             className={`card p-4 text-left transition-all ${!roleFilter ? 'ring-2' : ''}`}
             style={{
               borderColor: !roleFilter ? 'var(--color-accent)' : 'var(--color-border)',
-              ringColor: !roleFilter ? 'var(--color-accent)' : undefined,
+              boxShadow: !roleFilter ? '0 0 0 2px var(--color-accent)' : undefined,
             }}
           >
             <div className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -289,7 +289,7 @@ export default function EmployeesPage() {
               className={`card p-4 text-left transition-all ${roleFilter === role ? 'ring-2' : ''}`}
               style={{
                 borderColor: roleFilter === role ? roleColors[role] : 'var(--color-border)',
-                ringColor: roleFilter === role ? roleColors[role] : undefined,
+                boxShadow: roleFilter === role ? `0 0 0 2px ${roleColors[role]}` : undefined,
               }}
             >
               <div className="text-2xl font-bold" style={{ color: roleColors[role] }}>
